@@ -158,6 +158,39 @@ app.get('/api/logs', (req, res) => {
   res.json(logs)
 })
 
+// ─── Disparo de promoção ───────────────────────────────────────────────────────
+
+app.post('/api/promocao', async (req, res) => {
+  const { mensagem, filtro } = req.body
+  if (!mensagem || !filtro) return res.status(400).json({ erro: 'mensagem e filtro são obrigatórios' })
+
+  const hoje = new Date().toISOString().slice(0, 10)
+  let sql = `SELECT * FROM clientes WHERE nome IS NOT NULL AND telefone IS NOT NULL`
+  if (filtro === 'ativos')   sql += ` AND date(exp_date) >= '${hoje}'`
+  if (filtro === 'vencidos') sql += ` AND date(exp_date) < '${hoje}'`
+
+  const clientes = db.prepare(sql).all()
+
+  res.json({ ok: true, total: clientes.length })
+
+  // Dispara em background sem bloquear a resposta
+  ;(async () => {
+    for (const c of clientes) {
+      const texto = mensagem
+        .replace(/{nome}/g, c.nome || '')
+        .replace(/{username}/g, c.username || '')
+        .replace(/{renew_link}/g, c.renew_link || '')
+      try {
+        await enviarMensagem(c.telefone, texto)
+        db.prepare(`INSERT INTO logs (cliente_id, tipo, status) VALUES (?, 'promocao', 'enviado')`).run(c.id)
+      } catch {
+        db.prepare(`INSERT INTO logs (cliente_id, tipo, status) VALUES (?, 'promocao', 'erro')`).run(c.id)
+      }
+      await new Promise(r => setTimeout(r, 1500))
+    }
+  })()
+})
+
 // ─── Disparo manual do cron ────────────────────────────────────────────────────
 
 app.post('/api/cron/rodar', async (req, res) => {

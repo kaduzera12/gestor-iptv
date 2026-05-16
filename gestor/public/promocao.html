@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promoção — Gestor IPTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    nav { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; }
+    nav span { font-weight: 700; font-size: 18px; color: #7c6aff; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all .2s; }
+    nav a:hover, nav a.ativo { background: #2d3148; color: #e2e8f0; }
+    .container { max-width: 700px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .subtitulo { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 24px; margin-bottom: 16px; }
+    label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+    textarea { width: 100%; background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 160px; line-height: 1.6; }
+    textarea:focus { outline: none; border-color: #7c6aff; }
+    .vars { font-size: 12px; color: #64748b; margin-top: 8px; line-height: 1.8; }
+    .vars code { background: #2d3148; padding: 1px 5px; border-radius: 4px; color: #94a3b8; }
+    .filtros { display: flex; gap: 10px; margin-top: 20px; }
+    .filtro-btn { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #2d3148; background: #0f1117; color: #94a3b8; font-size: 14px; cursor: pointer; text-align: center; transition: all .2s; }
+    .filtro-btn:hover { border-color: #7c6aff; color: #e2e8f0; }
+    .filtro-btn.ativo { border-color: #7c6aff; background: #1e1a3a; color: #e2e8f0; }
+    .filtro-btn .titulo { font-weight: 600; margin-bottom: 3px; }
+    .filtro-btn .desc { font-size: 11px; color: #64748b; }
+    .filtro-btn.ativo .desc { color: #94a3b8; }
+    .rodape { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
+    .btn { padding: 12px 28px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity .2s; }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-roxo { background: #7c6aff; color: #fff; }
+    .preview { font-size: 13px; color: #64748b; }
+    .preview strong { color: #e2e8f0; }
+    #resultado { margin-top: 20px; padding: 16px; border-radius: 8px; border: 1px solid #2d3148; font-size: 14px; display: none; }
+    #resultado.ok { border-color: #16a34a; background: #052e16; color: #22c55e; }
+    #resultado.erro { border-color: #dc2626; background: #450a0a; color: #ef4444; }
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 12px 20px; font-size: 14px; display: none; z-index: 200; }
+    #toast.ok { border-color: #16a34a; color: #22c55e; }
+    #toast.erro { border-color: #dc2626; color: #ef4444; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span>📺 Gestor IPTV</span>
+  <a href="/">Clientes</a>
+  <a href="/logs.html">Logs</a>
+  <a href="/config.html">Configurações</a>
+  <a href="/promocao.html" class="ativo">Promoção</a>
+</nav>
+
+<div class="container">
+  <h1>Disparo de Promoção</h1>
+  <p class="subtitulo">Envie uma mensagem personalizada para um grupo de clientes de uma vez.</p>
+
+  <div class="card">
+    <label>Mensagem</label>
+    <textarea id="mensagem" placeholder="Digite sua mensagem aqui..."></textarea>
+    <div class="vars">Variáveis disponíveis: <code>{nome}</code> <code>{username}</code> <code>{renew_link}</code></div>
+
+    <div class="filtros">
+      <div class="filtro-btn ativo" data-filtro="todos" onclick="selecionarFiltro('todos')">
+        <div class="titulo">Todos</div>
+        <div class="desc">Todos os clientes com telefone</div>
+      </div>
+      <div class="filtro-btn" data-filtro="ativos" onclick="selecionarFiltro('ativos')">
+        <div class="titulo">Só ativos</div>
+        <div class="desc">Lista ainda dentro do prazo</div>
+      </div>
+      <div class="filtro-btn" data-filtro="vencidos" onclick="selecionarFiltro('vencidos')">
+        <div class="titulo">Só vencidos</div>
+        <div class="desc">Lista já expirada</div>
+      </div>
+    </div>
+
+    <div class="rodape">
+      <button class="btn btn-roxo" id="btnDisparar" onclick="disparar()">Disparar mensagem</button>
+      <span class="preview" id="preview"></span>
+    </div>
+
+    <div id="resultado"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let filtroAtual = 'todos'
+  let clientes = []
+
+  async function carregarClientes() {
+    clientes = await fetch('/api/clientes').then(r => r.json())
+    atualizarPreview()
+  }
+
+  function selecionarFiltro(filtro) {
+    filtroAtual = filtro
+    document.querySelectorAll('.filtro-btn').forEach(el => el.classList.remove('ativo'))
+    document.querySelector(`[data-filtro="${filtro}"]`).classList.add('ativo')
+    atualizarPreview()
+  }
+
+  function atualizarPreview() {
+    const hoje = new Date().toISOString().slice(0, 10)
+    const com = clientes.filter(c => {
+      if (!c.nome || !c.telefone) return false
+      if (filtroAtual === 'ativos')   return c.exp_date?.slice(0, 10) >= hoje
+      if (filtroAtual === 'vencidos') return c.exp_date?.slice(0, 10) < hoje
+      return true
+    })
+    document.getElementById('preview').innerHTML = `<strong>${com.length}</strong> cliente${com.length !== 1 ? 's' : ''} receberão esta mensagem`
+  }
+
+  async function disparar() {
+    const mensagem = document.getElementById('mensagem').value.trim()
+    if (!mensagem) { toast('Digite uma mensagem antes de disparar', 'erro'); return }
+
+    const btn = document.getElementById('btnDisparar')
+    btn.disabled = true
+    btn.textContent = 'Disparando...'
+
+    const res = await fetch('/api/promocao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mensagem, filtro: filtroAtual })
+    })
+    const data = await res.json()
+
+    btn.disabled = false
+    btn.textContent = 'Disparar mensagem'
+
+    if (data.ok) {
+      const el = document.getElementById('resultado')
+      el.className = 'ok'
+      el.style.display = 'block'
+      el.textContent = `✓ Disparo iniciado para ${data.total} cliente${data.total !== 1 ? 's' : ''}. As mensagens serão enviadas em sequência — acompanhe pelos Logs.`
+    } else {
+      toast(data.erro || 'Erro ao disparar', 'erro')
+    }
+  }
+
+  function toast(msg, tipo) {
+    const el = document.getElementById('toast')
+    el.textContent = msg; el.className = tipo; el.style.display = 'block'
+    setTimeout(() => el.style.display = 'none', 3000)
+  }
+
+  carregarClientes()
+</script>
+</body>
+</html>
