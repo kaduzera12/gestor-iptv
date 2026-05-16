@@ -1,6 +1,7 @@
 const cron = require('node-cron')
 const db = require('./db')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
+const { sincronizarClientes } = require('./sync')
 
 function getConfig(chave) {
   const row = db.prepare('SELECT valor FROM configuracoes WHERE chave = ?').get(chave)
@@ -48,7 +49,15 @@ async function processarCliente(cliente, tipo, templateKey, ativoKey) {
 }
 
 async function rodarAutomacao() {
-  console.log(`[CRON] Iniciando verificação — ${new Date().toLocaleString('pt-BR')}`)
+  console.log(`[CRON] Iniciando — ${new Date().toLocaleString('pt-BR')}`)
+
+  console.log('[CRON] Sincronizando clientes com o painel...')
+  try {
+    const { importados, atualizados } = await sincronizarClientes()
+    console.log(`[CRON] Sync concluído: ${importados} novos, ${atualizados} atualizados`)
+  } catch (err) {
+    console.error(`[CRON] Falha no sync: ${err.message} — disparos continuam com dados atuais`)
+  }
 
   const clientes = db.prepare(`SELECT * FROM clientes WHERE status = 'ativo'`).all()
 
