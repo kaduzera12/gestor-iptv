@@ -29,10 +29,17 @@ async function loginPainel() {
   })
 
   const loginCookies = resLogin.headers.raw()['set-cookie'] || []
-  const sessionCookie = [...cookies, ...loginCookies].map(c => c.split(';')[0]).join('; ')
-
   const loginBody = await resLogin.text()
   if (!loginBody.includes('dashboard')) throw new Error('Login falhou')
+
+  // Mescla cookies deduplificando por nome — o do login sobrescreve o inicial
+  const cookieMap = new Map()
+  for (const c of [...cookies, ...loginCookies]) {
+    const part = c.split(';')[0]
+    const [name] = part.split('=')
+    cookieMap.set(name.trim(), part)
+  }
+  const sessionCookie = [...cookieMap.values()].join('; ')
 
   return sessionCookie
 }
