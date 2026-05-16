@@ -88,6 +88,8 @@ async function sincronizarClientes() {
   let pagina = 1
   let totalImportados = 0
   let totalAtualizados = 0
+  let totalRemovidos = 0
+  const usernamesAtivos = new Set()
 
   while (true) {
     const res = await fetch(`${PANEL_URL}/api/lines/${pagina}`, { headers })
@@ -107,6 +109,8 @@ async function sincronizarClientes() {
       }
 
       if (!expDate) continue
+
+      usernamesAtivos.add(linha.username)
 
       const baseRenew = (RENEW_URL || PANEL_URL).replace(/\/+$/, '')
       const renewLink = `${baseRenew}/c/${linha.username}`
@@ -133,8 +137,17 @@ async function sincronizarClientes() {
     pagina++
   }
 
-  console.log(`[SYNC] Concluído: ${totalImportados} importados, ${totalAtualizados} atualizados`)
-  return { importados: totalImportados, atualizados: totalAtualizados }
+  // Remove do gestor clientes que foram excluídos do painel
+  const todosLocais = db.prepare(`SELECT username FROM clientes`).all()
+  for (const { username } of todosLocais) {
+    if (!usernamesAtivos.has(username)) {
+      db.prepare(`DELETE FROM clientes WHERE username = ?`).run(username)
+      totalRemovidos++
+    }
+  }
+
+  console.log(`[SYNC] Concluído: ${totalImportados} importados, ${totalAtualizados} atualizados, ${totalRemovidos} removidos`)
+  return { importados: totalImportados, atualizados: totalAtualizados, removidos: totalRemovidos }
 }
 
 module.exports = { sincronizarClientes }
