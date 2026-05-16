@@ -49,9 +49,24 @@ function extrairTelefone(messageHtml) {
   return match ? '55' + match[1] : null
 }
 
+function decodeHtml(str) {
+  const entities = {
+    '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú',
+    '&agrave;': 'à', '&egrave;': 'è', '&igrave;': 'ì', '&ograve;': 'ò', '&ugrave;': 'ù',
+    '&atilde;': 'ã', '&otilde;': 'õ', '&ntilde;': 'ñ',
+    '&ccedil;': 'ç', '&acirc;': 'â', '&ecirc;': 'ê', '&ocirc;': 'ô', '&ucirc;': 'û',
+    '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú',
+    '&Atilde;': 'Ã', '&Otilde;': 'Õ', '&Ccedil;': 'Ç', '&Acirc;': 'Â', '&Ecirc;': 'Ê', '&Ocirc;': 'Ô',
+    '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&nbsp;': ' ',
+  }
+  return str
+    .replace(/&[a-zA-Z]+;/g, e => entities[e] || e)
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+}
+
 function extrairNome(notes) {
   if (!notes) return null
-  return notes.replace(/\(.*?\)/g, '').trim() || null
+  return decodeHtml(notes.replace(/\(.*?\)/g, '').trim()) || null
 }
 
 async function sincronizarClientes() {
