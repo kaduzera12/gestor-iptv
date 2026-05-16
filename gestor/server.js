@@ -1,5 +1,6 @@
 require('dotenv').config()
 const express = require('express')
+const basicAuth = require('express-basic-auth')
 const path = require('path')
 const db = require('./db')
 const { sincronizarClientes } = require('./sync')
@@ -8,6 +9,13 @@ const { iniciarCron } = require('./cron')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
 
 const app = express()
+
+app.use(basicAuth({
+  users: { [process.env.ADMIN_USER]: process.env.ADMIN_PASS },
+  challenge: true,
+  realm: 'Gestor IPTV',
+}))
+
 app.use(express.json())
 app.use(express.static(path.join(__dirname, 'public')))
 
