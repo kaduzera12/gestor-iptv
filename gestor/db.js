@@ -66,10 +66,20 @@ Renove agora pelo link:
 
 _Mensagem automática_`,
 
+  template_10_dias_vencido: `*Olá {nome}! Sentimos sua falta* 👋
+
+Sua lista *{username}* está vencida há 10 dias.
+
+Que tal voltar? Renove agora e continue aproveitando o melhor conteúdo:
+{renew_link}
+
+_Mensagem automática_`,
+
   ativo_novo_cliente: 'true',
   ativo_3_dias: 'true',
   ativo_1_dia: 'true',
   ativo_vencimento: 'true',
+  ativo_10_dias_vencido: 'true',
 }
 
 for (const [chave, valor] of Object.entries(defaults)) {

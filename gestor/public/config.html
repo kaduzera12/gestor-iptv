@@ -147,13 +147,34 @@
     </div>
   </div>
 
+  <!-- 10 dias vencido -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-titulo">Reconquistar — 10 dias após vencimento</div>
+        <div class="card-desc">Enviado quando a lista está vencida há exatamente 10 dias</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="label_10_dias_vencido">Desativado</span>
+        <label class="toggle">
+          <input type="checkbox" id="ativo_10_dias_vencido" onchange="onToggle('10_dias_vencido')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="campo">
+      <textarea id="template_10_dias_vencido" rows="6"></textarea>
+      <div class="vars">Variáveis: <code>{nome}</code> <code>{username}</code> <code>{renew_link}</code></div>
+    </div>
+  </div>
+
   <button class="btn btn-roxo" onclick="salvar()">Salvar</button>
 </div>
 
 <div id="toast"></div>
 
 <script>
-  const automacoes = ['novo_cliente', '3_dias', '1_dia', 'vencimento']
+  const automacoes = ['novo_cliente', '3_dias', '1_dia', 'vencimento', '10_dias_vencido']
 
   async function carregarConfig() {
     const config = await fetch('/api/config').then(r => r.json())

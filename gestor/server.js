@@ -93,10 +93,11 @@ app.post('/api/clientes/:id/mensagem', async (req, res) => {
 
   const { tipo } = req.body
   const templateKey = {
-    novo_cliente: 'template_novo_cliente',
-    '3_dias': 'template_3_dias',
-    '1_dia': 'template_1_dia',
-    vencimento: 'template_vencimento',
+    novo_cliente:     'template_novo_cliente',
+    '3_dias':         'template_3_dias',
+    '1_dia':          'template_1_dia',
+    vencimento:       'template_vencimento',
+    '10_dias_vencido':'template_10_dias_vencido',
   }[tipo]
 
   if (!templateKey) return res.status(400).json({ erro: 'Tipo inválido' })
@@ -125,8 +126,8 @@ app.get('/api/config', (req, res) => {
 
 app.put('/api/config', (req, res) => {
   const permitidas = [
-    'template_novo_cliente', 'template_3_dias', 'template_1_dia', 'template_vencimento',
-    'ativo_novo_cliente', 'ativo_3_dias', 'ativo_1_dia', 'ativo_vencimento',
+    'template_novo_cliente', 'template_3_dias', 'template_1_dia', 'template_vencimento', 'template_10_dias_vencido',
+    'ativo_novo_cliente', 'ativo_3_dias', 'ativo_1_dia', 'ativo_vencimento', 'ativo_10_dias_vencido',
   ]
   for (const [chave, valor] of Object.entries(req.body)) {
     if (permitidas.includes(chave)) {

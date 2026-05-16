@@ -55,9 +55,10 @@ async function rodarAutomacao() {
   for (const cliente of clientes) {
     const dias = diasParaVencer(cliente.exp_date)
 
-    if (dias === 0) await processarCliente(cliente, 'vencimento', 'template_vencimento', 'ativo_vencimento')
-    if (dias === 1) await processarCliente(cliente, '1_dia', 'template_1_dia', 'ativo_1_dia')
-    if (dias === 3) await processarCliente(cliente, '3_dias', 'template_3_dias', 'ativo_3_dias')
+    if (dias === 3)   await processarCliente(cliente, '3_dias',            'template_3_dias',          'ativo_3_dias')
+    if (dias === 1)   await processarCliente(cliente, '1_dia',             'template_1_dia',           'ativo_1_dia')
+    if (dias === 0)   await processarCliente(cliente, 'vencimento',        'template_vencimento',      'ativo_vencimento')
+    if (dias === -10) await processarCliente(cliente, '10_dias_vencido',   'template_10_dias_vencido', 'ativo_10_dias_vencido')
   }
 
   console.log(`[CRON] Verificação concluída`)
