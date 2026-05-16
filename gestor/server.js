@@ -33,8 +33,8 @@ app.get('/api/clientes', (req, res) => {
 
 app.post('/api/clientes', (req, res) => {
   const { nome, telefone, username, senha, exp_date, renew_link } = req.body
-  if (!username || !telefone || !exp_date) {
-    return res.status(400).json({ erro: 'username, telefone e exp_date são obrigatórios' })
+  if (!username || !exp_date) {
+    return res.status(400).json({ erro: 'username e exp_date são obrigatórios' })
   }
   try {
     db.prepare(`

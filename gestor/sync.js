@@ -75,7 +75,7 @@ async function sincronizarClientes() {
   let totalAtualizados = 0
 
   while (true) {
-    const res = await fetch(`${PANEL_URL}/api/lines?page=${pagina}`, { headers })
+    const res = await fetch(`${PANEL_URL}/api/lines/${pagina}`, { headers })
     const data = await res.json()
 
     if (!data.results || data.results.length === 0) break
@@ -84,9 +84,12 @@ async function sincronizarClientes() {
       const telefone = extrairTelefone(linha.message)
       const nome = extrairNome(linha.reseller_notes)
 
-      const expDate = linha.exp_date
-        ? new Date(linha.exp_date.split('/').reverse().join('-')).toISOString()
-        : null
+      // Converte "DD/MM/YYYY HH:MM:SS" → "YYYY-MM-DDTHH:MM:SS"
+      let expDate = null
+      if (linha.exp_date) {
+        const m = linha.exp_date.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}:\d{2}:\d{2})?/)
+        if (m) expDate = `${m[3]}-${m[2]}-${m[1]}T${m[4] || '00:00:00'}`
+      }
 
       if (!expDate) continue
 

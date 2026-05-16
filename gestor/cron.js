@@ -33,7 +33,7 @@ async function processarCliente(cliente, tipo, templateKey, ativoKey) {
   if (jaEnviouHoje(cliente.id, tipo)) return
 
   const template = getConfig(templateKey)
-  if (!template || !cliente.telefone) return
+  if (!template || !cliente.telefone || !cliente.nome) return
 
   const texto = aplicarTemplate(template, cliente)
 

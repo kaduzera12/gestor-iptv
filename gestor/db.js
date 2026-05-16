@@ -5,7 +5,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT,
-    telefone TEXT NOT NULL,
+    telefone TEXT,
     username TEXT UNIQUE NOT NULL,
     senha TEXT,
     exp_date TEXT NOT NULL,

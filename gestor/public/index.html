@@ -50,6 +50,7 @@
     .badge-verde { background: #14532d; color: #22c55e; }
     .badge-vermelho { background: #450a0a; color: #ef4444; }
     .badge-amarelo { background: #422006; color: #eab308; }
+    .badge-cinza { background: #1e2235; color: #64748b; border: 1px dashed #2d3148; }
 
     .acoes { display: flex; gap: 4px; }
 
@@ -205,9 +206,17 @@
     const vazio = document.getElementById('vazio')
     if (!clientes.length) { tbody.innerHTML = ''; vazio.style.display = 'block'; return }
     vazio.style.display = 'none'
-    tbody.innerHTML = clientes.map(c => `
-      <tr>
-        <td>${c.nome || '<span style="color:#64748b">—</span>'}</td>
+    tbody.innerHTML = clientes.map(c => {
+      const semNome = !c.nome
+      const nomeCelula = semNome
+        ? '<span class="badge badge-cinza">Sem nome</span>'
+        : c.nome
+      const btnWpp = semNome
+        ? `<button class="btn btn-cinza btn-sm" disabled title="Sem nome — possível teste">WhatsApp</button>`
+        : `<button class="btn btn-verde btn-sm" onclick="abrirModalMsg(${c.id}, '${(c.nome||c.username).replace(/'/g,"\\'")}')">WhatsApp</button>`
+      return `
+      <tr style="${semNome ? 'opacity:.55' : ''}">
+        <td>${nomeCelula}</td>
         <td><code style="font-size:12px;color:#7c6aff">${c.username}</code></td>
         <td>${c.telefone || '—'}</td>
         <td>${formatarData(c.exp_date)}</td>
@@ -215,12 +224,12 @@
         <td>
           <div class="acoes">
             <button class="btn btn-cinza btn-sm" onclick="abrirModalEditar(${c.id})">Editar</button>
-            <button class="btn btn-verde btn-sm" onclick="abrirModalMsg(${c.id}, '${(c.nome||c.username).replace(/'/g,"\\'")}')">WhatsApp</button>
+            ${btnWpp}
             <button class="btn btn-vermelho btn-sm" onclick="deletarCliente(${c.id})">✕</button>
           </div>
         </td>
-      </tr>
-    `).join('')
+      </tr>`
+    }).join('')
   }
 
   function atualizarStats(clientes) {
