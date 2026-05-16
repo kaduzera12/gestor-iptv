@@ -2,7 +2,7 @@ require('dotenv').config()
 const fetch = require('node-fetch')
 const db = require('./db')
 
-const { PANEL_URL, PANEL_USER, PANEL_PASS } = process.env
+const { PANEL_URL, PANEL_USER, PANEL_PASS, RENEW_URL } = process.env
 
 async function loginPainel() {
   const resPage = await fetch(`${PANEL_URL}/login`, {
@@ -93,7 +93,8 @@ async function sincronizarClientes() {
 
       if (!expDate) continue
 
-      const renewLink = `${PANEL_URL.replace(/\/+$/, '')}/c/${linha.username}`
+      const baseRenew = (RENEW_URL || PANEL_URL).replace(/\/+$/, '')
+      const renewLink = `${baseRenew}/c/${linha.username}`
 
       const existente = db.prepare('SELECT id FROM clientes WHERE username = ?').get(linha.username)
 
