@@ -15,6 +15,9 @@ Substitui a automação paga de painéis como o `painelr.top` — roda na sua pr
 - Cada automação pode ser ativada ou desativada individualmente pelo painel
 - Templates de mensagem editáveis pelo painel
 - Clientes sem nome são marcados visualmente e ignorados pelas automações (tratados como contas de teste)
+- Clientes excluídos do painel são removidos automaticamente do gestor na próxima sincronização
+- Disparo de promoção manual para todos, apenas ativos ou apenas vencidos
+- Painel web protegido com usuário e senha
 - Histórico de todas as mensagens enviadas
 
 ## Requisitos
@@ -39,12 +42,16 @@ Edite o `.env` com suas credenciais:
 PANEL_URL=https://seu-painel.painelr.top
 PANEL_USER=seu_usuario
 PANEL_PASS=sua_senha
+RENEW_URL=https://seu-painel.appm.live  # domínio do link de renovação (se diferente do PANEL_URL)
 
 EVOLUTION_URL=http://SEU_IP:8080
 EVOLUTION_KEY=sua-api-key
 EVOLUTION_INSTANCE=nome-da-instancia
 
 PORT=3000
+
+ADMIN_USER=seu_usuario_painel
+ADMIN_PASS=sua_senha_forte
 ```
 
 ## Rodando
@@ -72,6 +79,7 @@ pm2 startup
 2. O sistema sincroniza os clientes do painel e dispara as mensagens automaticamente todo dia às **9h** (horário de Brasília)
 3. Nenhuma intervenção manual é necessária — basta manter o processo rodando
 4. Para disparar manualmente fora do horário, use o botão **▶ Rodar Automação Agora** na tela de **Logs**
+5. Para enviar uma mensagem avulsa para um grupo de clientes, use a página **Promoção**
 
 > Clientes sem nome no painel são ignorados pelas automações automáticas e marcados visualmente no dashboard.
 
@@ -106,9 +114,10 @@ gestor-iptv/
     ├── whatsapp.js     ← envio via Evolution API
     ├── db.js           ← banco de dados SQLite
     └── public/
-        ├── index.html  ← dashboard de clientes
-        ├── logs.html   ← histórico de mensagens
-        └── config.html ← templates de mensagem
+        ├── index.html    ← dashboard de clientes
+        ├── logs.html     ← histórico de mensagens
+        ├── config.html   ← templates de mensagem
+        └── promocao.html ← disparo de promoções
 ```
 
 ## Licença
