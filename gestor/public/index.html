@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor IPTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+    nav { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; }
+    nav span { font-weight: 700; font-size: 18px; color: #7c6aff; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all .2s; }
+    nav a:hover, nav a.ativo { background: #2d3148; color: #e2e8f0; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    .topo { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .topo h1 { font-size: 20px; font-weight: 600; flex: 1; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; }
+    .stat .valor { font-size: 28px; font-weight: 700; }
+    .stat .label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    .stat.verde .valor { color: #22c55e; }
+    .stat.amarelo .valor { color: #eab308; }
+    .stat.vermelho .valor { color: #ef4444; }
+    .stat.roxo .valor { color: #7c6aff; }
+
+    .barra { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .barra input { flex: 1; min-width: 200px; background: #1a1d2e; border: 1px solid #2d3148; color: #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+    .barra input:focus { outline: none; border-color: #7c6aff; }
+    .barra select { background: #1a1d2e; border: 1px solid #2d3148; color: #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .2s; }
+    .btn:hover { opacity: .85; }
+    .btn-roxo { background: #7c6aff; color: #fff; }
+    .btn-cinza { background: #2d3148; color: #e2e8f0; }
+    .btn-verde { background: #16a34a; color: #fff; }
+    .btn-vermelho { background: #dc2626; color: #fff; }
+    .btn-amarelo { background: #ca8a04; color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; color: #94a3b8; font-weight: 500; border-bottom: 1px solid #2d3148; white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid #1e2235; vertical-align: middle; }
+    tr:hover td { background: #1e2235; }
+
+    .badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-verde { background: #14532d; color: #22c55e; }
+    .badge-vermelho { background: #450a0a; color: #ef4444; }
+    .badge-amarelo { background: #422006; color: #eab308; }
+
+    .acoes { display: flex; gap: 4px; }
+
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; }
+    .modal-bg.aberto { display: flex; }
+    .modal { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 12px; padding: 24px; width: 100%; max-width: 480px; }
+    .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+    .campo { margin-bottom: 14px; }
+    .campo label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+    .campo input, .campo select { width: 100%; background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+    .campo input:focus { outline: none; border-color: #7c6aff; }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    .vazio { text-align: center; padding: 48px; color: #94a3b8; }
+
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 12px 20px; font-size: 14px; display: none; z-index: 200; }
+    #toast.ok { border-color: #16a34a; color: #22c55e; }
+    #toast.erro { border-color: #dc2626; color: #ef4444; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span>📺 Gestor IPTV</span>
+  <a href="/" class="ativo">Clientes</a>
+  <a href="/logs.html">Logs</a>
+  <a href="/config.html">Configurações</a>
+</nav>
+
+<div class="container">
+  <div class="topo">
+    <h1>Clientes</h1>
+    <button class="btn btn-cinza" onclick="sincronizar()" id="btnSync">↻ Sincronizar Painel</button>
+    <button class="btn btn-roxo" onclick="abrirModalNovo()">+ Novo Cliente</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat roxo"><div class="valor" id="statTotal">—</div><div class="label">Total de clientes</div></div>
+    <div class="stat verde"><div class="valor" id="statAtivos">—</div><div class="label">Ativos</div></div>
+    <div class="stat amarelo"><div class="valor" id="statVencendo">—</div><div class="label">Vencem em 3 dias</div></div>
+    <div class="stat vermelho"><div class="valor" id="statVencidos">—</div><div class="label">Vencidos</div></div>
+  </div>
+
+  <div class="barra">
+    <input type="text" id="busca" placeholder="Buscar por nome, usuário ou telefone..." oninput="carregarClientes()">
+    <select id="filtroStatus" onchange="carregarClientes()">
+      <option value="">Todos</option>
+      <option value="ativo">Ativos</option>
+      <option value="inativo">Inativos</option>
+    </select>
+  </div>
+
+  <div style="background:#1a1d2e; border:1px solid #2d3148; border-radius:10px; overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Usuário</th>
+          <th>Telefone</th>
+          <th>Vencimento</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
+    <div class="vazio" id="vazio" style="display:none">Nenhum cliente encontrado</div>
+  </div>
+</div>
+
+<!-- Modal novo/editar -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2 id="modalTitulo">Novo Cliente</h2>
+    <div class="campo"><label>Nome</label><input id="fNome" placeholder="Nome do cliente"></div>
+    <div class="campo"><label>Telefone (WhatsApp) *</label><input id="fTelefone" placeholder="64999999999"></div>
+    <div class="campo"><label>Usuário IPTV *</label><input id="fUsername" placeholder="usuario123"></div>
+    <div class="campo"><label>Senha IPTV</label><input id="fSenha" placeholder="senha123"></div>
+    <div class="campo"><label>Vencimento *</label><input id="fExpDate" type="datetime-local"></div>
+    <div class="campo"><label>Link de Renovação</label><input id="fRenewLink" placeholder="https://..."></div>
+    <div class="campo" id="campStatus" style="display:none"><label>Status</label>
+      <select id="fStatus"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cinza" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-roxo" onclick="salvarCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal enviar mensagem -->
+<div class="modal-bg" id="modalMsg">
+  <div class="modal">
+    <h2>Enviar Mensagem</h2>
+    <p style="font-size:14px;color:#94a3b8;margin-bottom:16px">Cliente: <strong id="msgClienteNome"></strong></p>
+    <div class="campo"><label>Tipo de mensagem</label>
+      <select id="msgTipo">
+        <option value="novo_cliente">Dados do novo cliente</option>
+        <option value="vencimento">Aviso de vencimento (hoje)</option>
+        <option value="1_dia">Aviso 1 dia antes</option>
+        <option value="3_dias">Aviso 3 dias antes</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cinza" onclick="fecharModalMsg()">Cancelar</button>
+      <button class="btn btn-verde" onclick="enviarMensagem()">Enviar WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let clienteEditandoId = null
+  let clienteMsgId = null
+  let todosClientes = []
+
+  async function carregarClientes() {
+    const busca = document.getElementById('busca').value
+    const status = document.getElementById('filtroStatus').value
+    const params = new URLSearchParams()
+    if (busca) params.set('busca', busca)
+    if (status) params.set('status', status)
+
+    const clientes = await fetch('/api/clientes?' + params).then(r => r.json())
+    todosClientes = clientes
+    renderTabela(clientes)
+    atualizarStats(clientes)
+  }
+
+  function diasParaVencer(expDate) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0)
+    const v = new Date(expDate); v.setHours(0,0,0,0)
+    return Math.round((v - hoje) / 86400000)
+  }
+
+  function formatarData(iso) {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})
+  }
+
+  function badgeStatus(expDate, status) {
+    if (status === 'inativo') return '<span class="badge badge-vermelho">Inativo</span>'
+    const dias = diasParaVencer(expDate)
+    if (dias < 0) return '<span class="badge badge-vermelho">Vencido</span>'
+    if (dias <= 3) return '<span class="badge badge-amarelo">Vence em ' + dias + 'd</span>'
+    return '<span class="badge badge-verde">Ativo</span>'
+  }
+
+  function renderTabela(clientes) {
+    const tbody = document.getElementById('tabela')
+    const vazio = document.getElementById('vazio')
+    if (!clientes.length) { tbody.innerHTML = ''; vazio.style.display = 'block'; return }
+    vazio.style.display = 'none'
+    tbody.innerHTML = clientes.map(c => `
+      <tr>
+        <td>${c.nome || '<span style="color:#64748b">—</span>'}</td>
+        <td><code style="font-size:12px;color:#7c6aff">${c.username}</code></td>
+        <td>${c.telefone || '—'}</td>
+        <td>${formatarData(c.exp_date)}</td>
+        <td>${badgeStatus(c.exp_date, c.status)}</td>
+        <td>
+          <div class="acoes">
+            <button class="btn btn-cinza btn-sm" onclick="abrirModalEditar(${c.id})">Editar</button>
+            <button class="btn btn-verde btn-sm" onclick="abrirModalMsg(${c.id}, '${(c.nome||c.username).replace(/'/g,"\\'")}')">WhatsApp</button>
+            <button class="btn btn-vermelho btn-sm" onclick="deletarCliente(${c.id})">✕</button>
+          </div>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  function atualizarStats(clientes) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0)
+    document.getElementById('statTotal').textContent = clientes.length
+    document.getElementById('statAtivos').textContent = clientes.filter(c => c.status === 'ativo' && diasParaVencer(c.exp_date) >= 0).length
+    document.getElementById('statVencendo').textContent = clientes.filter(c => { const d = diasParaVencer(c.exp_date); return d >= 0 && d <= 3 }).length
+    document.getElementById('statVencidos').textContent = clientes.filter(c => diasParaVencer(c.exp_date) < 0).length
+  }
+
+  function abrirModalNovo() {
+    clienteEditandoId = null
+    document.getElementById('modalTitulo').textContent = 'Novo Cliente'
+    document.getElementById('campStatus').style.display = 'none'
+    limparForm()
+    document.getElementById('modal').classList.add('aberto')
+  }
+
+  function abrirModalEditar(id) {
+    const c = todosClientes.find(x => x.id === id)
+    if (!c) return
+    clienteEditandoId = id
+    document.getElementById('modalTitulo').textContent = 'Editar Cliente'
+    document.getElementById('campStatus').style.display = 'block'
+    document.getElementById('fNome').value = c.nome || ''
+    document.getElementById('fTelefone').value = c.telefone || ''
+    document.getElementById('fUsername').value = c.username || ''
+    document.getElementById('fSenha').value = c.senha || ''
+    document.getElementById('fExpDate').value = c.exp_date ? c.exp_date.slice(0, 16) : ''
+    document.getElementById('fRenewLink').value = c.renew_link || ''
+    document.getElementById('fStatus').value = c.status || 'ativo'
+    document.getElementById('modal').classList.add('aberto')
+  }
+
+  function fecharModal() { document.getElementById('modal').classList.remove('aberto') }
+
+  function limparForm() {
+    ['fNome','fTelefone','fUsername','fSenha','fExpDate','fRenewLink'].forEach(id => document.getElementById(id).value = '')
+  }
+
+  async function salvarCliente() {
+    const body = {
+      nome: document.getElementById('fNome').value,
+      telefone: document.getElementById('fTelefone').value,
+      username: document.getElementById('fUsername').value,
+      senha: document.getElementById('fSenha').value,
+      exp_date: document.getElementById('fExpDate').value,
+      renew_link: document.getElementById('fRenewLink').value,
+      status: document.getElementById('fStatus').value || 'ativo',
+    }
+    const url = clienteEditandoId ? `/api/clientes/${clienteEditandoId}` : '/api/clientes'
+    const method = clienteEditandoId ? 'PUT' : 'POST'
+    const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.ok) { fecharModal(); carregarClientes(); toast('Salvo!', 'ok') }
+    else toast(data.erro || 'Erro', 'erro')
+  }
+
+  async function deletarCliente(id) {
+    if (!confirm('Remover este cliente?')) return
+    await fetch(`/api/clientes/${id}`, { method: 'DELETE' })
+    carregarClientes()
+    toast('Cliente removido', 'ok')
+  }
+
+  function abrirModalMsg(id, nome) {
+    clienteMsgId = id
+    document.getElementById('msgClienteNome').textContent = nome
+    document.getElementById('modalMsg').classList.add('aberto')
+  }
+
+  function fecharModalMsg() { document.getElementById('modalMsg').classList.remove('aberto') }
+
+  async function enviarMensagem() {
+    const tipo = document.getElementById('msgTipo').value
+    const res = await fetch(`/api/clientes/${clienteMsgId}/mensagem`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ tipo })
+    })
+    const data = await res.json()
+    fecharModalMsg()
+    if (data.ok) toast('Mensagem enviada!', 'ok')
+    else toast(data.erro || 'Erro ao enviar', 'erro')
+  }
+
+  async function sincronizar() {
+    const btn = document.getElementById('btnSync')
+    btn.textContent = '↻ Sincronizando...'
+    btn.disabled = true
+    try {
+      const res = await fetch('/api/sync', { method: 'POST' })
+      const data = await res.json()
+      if (data.ok) {
+        toast(`Sync: ${data.importados} importados, ${data.atualizados} atualizados`, 'ok')
+        carregarClientes()
+      } else toast(data.erro || 'Erro no sync', 'erro')
+    } catch { toast('Erro de conexão', 'erro') }
+    btn.textContent = '↻ Sincronizar Painel'
+    btn.disabled = false
+  }
+
+  function toast(msg, tipo) {
+    const el = document.getElementById('toast')
+    el.textContent = msg
+    el.className = tipo
+    el.style.display = 'block'
+    setTimeout(() => el.style.display = 'none', 3000)
+  }
+
+  carregarClientes()
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurações — Gestor IPTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    nav { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; }
+    nav span { font-weight: 700; font-size: 18px; color: #7c6aff; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all .2s; }
+    nav a:hover, nav a.ativo { background: #2d3148; color: #e2e8f0; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 24px; }
+    h2 { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 16px; margin-top: 32px; }
+
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-titulo { font-size: 15px; font-weight: 600; }
+    .card-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .toggle-label { font-size: 13px; color: #94a3b8; }
+    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #2d3148; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #64748b; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: #7c6aff; }
+    input:checked + .slider:before { transform: translateX(20px); background: #fff; }
+
+    .campo { margin-bottom: 0; }
+    .campo label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+    .campo textarea { width: 100%; background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 110px; line-height: 1.6; }
+    .campo textarea:focus { outline: none; border-color: #7c6aff; }
+    .campo textarea:disabled { opacity: .4; cursor: not-allowed; }
+    .vars { font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.8; }
+    .vars code { background: #2d3148; padding: 1px 5px; border-radius: 4px; color: #94a3b8; }
+
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .2s; }
+    .btn:hover { opacity: .85; }
+    .btn-roxo { background: #7c6aff; color: #fff; }
+
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 12px 20px; font-size: 14px; display: none; z-index: 200; }
+    #toast.ok { border-color: #16a34a; color: #22c55e; }
+    #toast.erro { border-color: #dc2626; color: #ef4444; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span>📺 Gestor IPTV</span>
+  <a href="/">Clientes</a>
+  <a href="/logs.html">Logs</a>
+  <a href="/config.html" class="ativo">Configurações</a>
+</nav>
+
+<div class="container">
+  <h1>Configurações</h1>
+  <h2>Automações</h2>
+  <p style="font-size:13px;color:#64748b;margin-bottom:20px">
+    As automações rodam automaticamente todo dia às 9h. Ative ou desative cada uma individualmente.
+  </p>
+
+  <!-- Novo cliente -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-titulo">Boas-vindas ao novo cliente</div>
+        <div class="card-desc">Enviado automaticamente ao cadastrar um cliente manualmente</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="label_novo_cliente">Desativado</span>
+        <label class="toggle">
+          <input type="checkbox" id="ativo_novo_cliente" onchange="onToggle('novo_cliente')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="campo">
+      <textarea id="template_novo_cliente" rows="6"></textarea>
+      <div class="vars">Variáveis: <code>{nome}</code> <code>{username}</code> <code>{senha}</code> <code>{exp_date}</code> <code>{renew_link}</code></div>
+    </div>
+  </div>
+
+  <!-- 3 dias antes -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-titulo">Aviso 3 dias antes do vencimento</div>
+        <div class="card-desc">Enviado 3 dias antes da lista vencer</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="label_3_dias">Desativado</span>
+        <label class="toggle">
+          <input type="checkbox" id="ativo_3_dias" onchange="onToggle('3_dias')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="campo">
+      <textarea id="template_3_dias" rows="5"></textarea>
+      <div class="vars">Variáveis: <code>{nome}</code> <code>{username}</code> <code>{renew_link}</code></div>
+    </div>
+  </div>
+
+  <!-- 1 dia antes -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-titulo">Aviso 1 dia antes do vencimento</div>
+        <div class="card-desc">Enviado 1 dia antes da lista vencer</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="label_1_dia">Desativado</span>
+        <label class="toggle">
+          <input type="checkbox" id="ativo_1_dia" onchange="onToggle('1_dia')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="campo">
+      <textarea id="template_1_dia" rows="5"></textarea>
+      <div class="vars">Variáveis: <code>{nome}</code> <code>{username}</code> <code>{renew_link}</code></div>
+    </div>
+  </div>
+
+  <!-- No vencimento -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-titulo">Aviso no dia do vencimento</div>
+        <div class="card-desc">Enviado no dia em que a lista vence</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="label_vencimento">Desativado</span>
+        <label class="toggle">
+          <input type="checkbox" id="ativo_vencimento" onchange="onToggle('vencimento')">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="campo">
+      <textarea id="template_vencimento" rows="5"></textarea>
+      <div class="vars">Variáveis: <code>{nome}</code> <code>{username}</code> <code>{renew_link}</code></div>
+    </div>
+  </div>
+
+  <button class="btn btn-roxo" onclick="salvar()">Salvar</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const automacoes = ['novo_cliente', '3_dias', '1_dia', 'vencimento']
+
+  async function carregarConfig() {
+    const config = await fetch('/api/config').then(r => r.json())
+    for (const [chave, valor] of Object.entries(config)) {
+      const el = document.getElementById(chave)
+      if (!el) continue
+      if (el.type === 'checkbox') {
+        el.checked = valor === 'true'
+      } else {
+        el.value = valor
+      }
+    }
+    automacoes.forEach(a => atualizarToggleUI(a, config[`ativo_${a}`] === 'true'))
+  }
+
+  function onToggle(key) {
+    const checked = document.getElementById(`ativo_${key}`).checked
+    atualizarToggleUI(key, checked)
+  }
+
+  function atualizarToggleUI(key, ativo) {
+    const label = document.getElementById(`label_${key}`)
+    const textarea = document.getElementById(`template_${key}`)
+    if (label) label.textContent = ativo ? 'Ativado' : 'Desativado'
+    if (textarea) textarea.disabled = !ativo
+  }
+
+  async function salvar() {
+    const body = {}
+    automacoes.forEach(a => {
+      body[`ativo_${a}`] = document.getElementById(`ativo_${a}`).checked ? 'true' : 'false'
+      body[`template_${a}`] = document.getElementById(`template_${a}`).value
+    })
+    const res = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.ok) toast('Salvo!', 'ok')
+    else toast('Erro ao salvar', 'erro')
+  }
+
+  function toast(msg, tipo) {
+    const el = document.getElementById('toast')
+    el.textContent = msg; el.className = tipo; el.style.display = 'block'
+    setTimeout(() => el.style.display = 'none', 3000)
+  }
+
+  carregarConfig()
+</script>
+</body>
+</html>

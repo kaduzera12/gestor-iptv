@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logs — Gestor IPTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    nav { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; }
+    nav span { font-weight: 700; font-size: 18px; color: #7c6aff; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all .2s; }
+    nav a:hover, nav a.ativo { background: #2d3148; color: #e2e8f0; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .topo { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .topo h1 { font-size: 20px; font-weight: 600; flex: 1; }
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; }
+    .btn-roxo { background: #7c6aff; color: #fff; }
+    .btn-cinza { background: #2d3148; color: #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; color: #94a3b8; font-weight: 500; border-bottom: 1px solid #2d3148; white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid #1e2235; vertical-align: middle; }
+    tr:hover td { background: #1e2235; }
+    .badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-verde { background: #14532d; color: #22c55e; }
+    .badge-vermelho { background: #450a0a; color: #ef4444; }
+    .tipo { font-size: 12px; padding: 3px 8px; background: #2d3148; border-radius: 20px; }
+    .vazio { text-align: center; padding: 48px; color: #94a3b8; }
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1d2e; border: 1px solid #2d3148; border-radius: 10px; padding: 12px 20px; font-size: 14px; display: none; z-index: 200; }
+    #toast.ok { border-color: #16a34a; color: #22c55e; }
+    #toast.erro { border-color: #dc2626; color: #ef4444; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span>📺 Gestor IPTV</span>
+  <a href="/">Clientes</a>
+  <a href="/logs.html" class="ativo">Logs</a>
+  <a href="/config.html">Configurações</a>
+</nav>
+
+<div class="container">
+  <div class="topo">
+    <h1>Histórico de Mensagens</h1>
+    <button class="btn btn-cinza" onclick="rodarCron()">▶ Rodar Automação Agora</button>
+  </div>
+
+  <div style="background:#1a1d2e; border:1px solid #2d3148; border-radius:10px; overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Usuário</th>
+          <th>Telefone</th>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th>Enviado em</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
+    <div class="vazio" id="vazio" style="display:none">Nenhum log encontrado</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const tipoLabel = {
+    novo_cliente: 'Novo cliente',
+    '3_dias': '3 dias antes',
+    '1_dia': '1 dia antes',
+    vencimento: 'Vencimento',
+  }
+
+  async function carregarLogs() {
+    const logs = await fetch('/api/logs').then(r => r.json())
+    const tbody = document.getElementById('tabela')
+    const vazio = document.getElementById('vazio')
+    if (!logs.length) { tbody.innerHTML = ''; vazio.style.display = 'block'; return }
+    vazio.style.display = 'none'
+    tbody.innerHTML = logs.map(l => `
+      <tr>
+        <td>${l.nome || '—'}</td>
+        <td><code style="font-size:12px;color:#7c6aff">${l.username || '—'}</code></td>
+        <td>${l.telefone || '—'}</td>
+        <td><span class="tipo">${tipoLabel[l.tipo] || l.tipo}</span></td>
+        <td><span class="badge ${l.status === 'enviado' ? 'badge-verde' : 'badge-vermelho'}">${l.status}</span></td>
+        <td style="color:#94a3b8;font-size:13px">${new Date(l.enviado_em).toLocaleString('pt-BR')}</td>
+      </tr>
+    `).join('')
+  }
+
+  async function rodarCron() {
+    const res = await fetch('/api/cron/rodar', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) { toast('Automação executada!', 'ok'); carregarLogs() }
+    else toast(data.erro || 'Erro', 'erro')
+  }
+
+  function toast(msg, tipo) {
+    const el = document.getElementById('toast')
+    el.textContent = msg; el.className = tipo; el.style.display = 'block'
+    setTimeout(() => el.style.display = 'none', 3000)
+  }
+
+  carregarLogs()
+</script>
+</body>
+</html>
