@@ -141,7 +141,11 @@ async function sincronizarClientes() {
   const todosLocais = db.prepare(`SELECT username FROM clientes`).all()
   for (const { username } of todosLocais) {
     if (!usernamesAtivos.has(username)) {
-      db.prepare(`DELETE FROM clientes WHERE username = ?`).run(username)
+      const cliente = db.prepare(`SELECT id FROM clientes WHERE username = ?`).get(username)
+      if (cliente) {
+        db.prepare(`DELETE FROM logs WHERE cliente_id = ?`).run(cliente.id)
+        db.prepare(`DELETE FROM clientes WHERE id = ?`).run(cliente.id)
+      }
       totalRemovidos++
     }
   }

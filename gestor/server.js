@@ -78,6 +78,7 @@ app.put('/api/clientes/:id', (req, res) => {
 })
 
 app.delete('/api/clientes/:id', (req, res) => {
+  db.prepare('DELETE FROM logs WHERE cliente_id = ?').run(req.params.id)
   db.prepare('DELETE FROM clientes WHERE id = ?').run(req.params.id)
   res.json({ ok: true })
 })
