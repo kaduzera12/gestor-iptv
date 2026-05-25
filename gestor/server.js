@@ -143,6 +143,48 @@ app.post('/api/sync', async (req, res) => {
   }
 })
 
+app.post('/api/import-gesapi', (req, res) => {
+  const { clientes } = req.body
+  if (!Array.isArray(clientes)) return res.status(400).json({ erro: 'clientes deve ser array' })
+
+  let importados = 0, atualizados = 0, removidos = 0
+  const usernamesAtivos = new Set(clientes.map(c => c.username))
+
+  for (const c of clientes) {
+    const existente = db.prepare(`SELECT id FROM clientes WHERE username = ? AND source = 'gesapi'`).get(c.username)
+    if (existente) {
+      db.prepare(`
+        UPDATE clientes SET nome = ?, telefone = COALESCE(?, telefone),
+        exp_date = ?, renew_link = ?, painel_id = ?, status = 'ativo'
+        WHERE username = ? AND source = 'gesapi'
+      `).run(c.nome, c.telefone, c.exp_date, c.renew_link, c.painel_id, c.username)
+      atualizados++
+    } else {
+      try {
+        db.prepare(`
+          INSERT INTO clientes (nome, telefone, username, senha, exp_date, renew_link, painel_id, source)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'gesapi')
+        `).run(c.nome, c.telefone, c.username, c.senha, c.exp_date, c.renew_link, c.painel_id)
+        importados++
+      } catch {
+        // username já existe em outro painel
+      }
+    }
+  }
+
+  const todosLocais = db.prepare(`SELECT id, username FROM clientes WHERE source = 'gesapi'`).all()
+  for (const { id, username } of todosLocais) {
+    if (!usernamesAtivos.has(username)) {
+      db.prepare(`DELETE FROM logs WHERE cliente_id = ?`).run(id)
+      db.prepare(`DELETE FROM clientes WHERE id = ?`).run(id)
+      removidos++
+    }
+  }
+
+  console.log(`[IMPORT-GESAPI] ${importados} importados, ${atualizados} atualizados, ${removidos} removidos`)
+  res.json({ ok: true, importados, atualizados, removidos })
+})
+
 // ─── Envio manual de mensagem ──────────────────────────────────────────────────
 
 app.post('/api/clientes/:id/mensagem', async (req, res) => {
