@@ -84,8 +84,7 @@
 <div class="container">
   <div class="topo">
     <h1>Clientes</h1>
-    <button class="btn btn-cinza" onclick="sincronizar('painelr')" id="btnSync">↻ Sync Painelr</button>
-    <button class="btn btn-cinza" onclick="sincronizar('gesapi')" id="btnSyncGesapi">↻ Sync Gesapi</button>
+    <button class="btn btn-cinza" onclick="sincronizar()" id="btnSync">↻ Sincronizar</button>
     <button class="btn btn-roxo" onclick="abrirModalNovo()">+ Novo Cliente</button>
   </div>
 
@@ -317,24 +316,19 @@
     else toast(data.erro || 'Erro ao enviar', 'erro')
   }
 
-  async function sincronizar(painel = 'painelr') {
-    const isGesapi = painel === 'gesapi'
-    const btnId = isGesapi ? 'btnSyncGesapi' : 'btnSync'
-    const endpoint = isGesapi ? '/api/sync-gesapi' : '/api/sync'
-    const label = isGesapi ? '↻ Sync Gesapi' : '↻ Sync Painelr'
-
-    const btn = document.getElementById(btnId)
+  async function sincronizar() {
+    const btn = document.getElementById('btnSync')
     btn.textContent = '↻ Sincronizando...'
     btn.disabled = true
     try {
-      const res = await fetch(endpoint, { method: 'POST' })
+      const res = await fetch('/api/sync', { method: 'POST' })
       const data = await res.json()
       if (data.ok) {
         toast(`Sync: ${data.importados} importados, ${data.atualizados} atualizados`, 'ok')
         carregarClientes()
       } else toast(data.erro || 'Erro no sync', 'erro')
     } catch { toast('Erro de conexão', 'erro') }
-    btn.textContent = label
+    btn.textContent = '↻ Sincronizar'
     btn.disabled = false
   }
 

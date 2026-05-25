@@ -2,7 +2,6 @@ const cron = require('node-cron')
 const db = require('./db')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
 const { sincronizarClientes } = require('./sync')
-const { sincronizarClientesGesapi } = require('./sync-gesapi')
 const { buscarPagamentoAprovado } = require('./pagamento')
 const { renovarClienteGesapi } = require('./renew-gesapi')
 
@@ -68,12 +67,6 @@ async function rodarAutomacao() {
       console.log(`[CRON] Sync painelr: ${importados} novos, ${atualizados} atualizados`)
     } catch (err) {
       console.error(`[CRON] Falha no sync painelr: ${err.message}`)
-    }
-    try {
-      const { importados, atualizados } = await sincronizarClientesGesapi()
-      console.log(`[CRON] Sync gesapi: ${importados} novos, ${atualizados} atualizados`)
-    } catch (err) {
-      console.error(`[CRON] Falha no sync gesapi: ${err.message} — disparos continuam com dados atuais`)
     }
 
     const clientes = db.prepare(`SELECT * FROM clientes WHERE status = 'ativo'`).all()

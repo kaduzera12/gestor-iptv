@@ -4,7 +4,6 @@ const basicAuth = require('express-basic-auth')
 const path = require('path')
 const db = require('./db')
 const { sincronizarClientes } = require('./sync')
-const { sincronizarClientesGesapi } = require('./sync-gesapi')
 const { rodarAutomacao, iniciarCron, iniciarPollingPagamentos } = require('./cron')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
 const { criarPreference } = require('./pagamento')
@@ -138,15 +137,6 @@ app.delete('/api/clientes/:id', (req, res) => {
 app.post('/api/sync', async (req, res) => {
   try {
     const resultado = await sincronizarClientes()
-    res.json({ ok: true, ...resultado })
-  } catch (err) {
-    res.status(500).json({ erro: err.message })
-  }
-})
-
-app.post('/api/sync-gesapi', async (req, res) => {
-  try {
-    const resultado = await sincronizarClientesGesapi()
     res.json({ ok: true, ...resultado })
   } catch (err) {
     res.status(500).json({ erro: err.message })
