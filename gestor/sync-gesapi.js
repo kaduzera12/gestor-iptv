@@ -6,7 +6,7 @@ const { GESAPI_USER, GESAPI_PASS, GESAPI_PROXY_URL, GESAPI_PROXY_SECRET } = proc
 const BASE_URL = GESAPI_PROXY_URL || 'https://gesapioffice.com'
 
 function gesapiHeaders(extra = {}) {
-  const h = { 'Content-Type': 'application/json', ...extra }
+  const h = { 'Content-Type': 'application/json', Origin: 'https://searchdefense.top', Referer: 'https://searchdefense.top/', ...extra }
   if (GESAPI_PROXY_SECRET) h['X-Proxy-Secret'] = GESAPI_PROXY_SECRET
   return h
 }

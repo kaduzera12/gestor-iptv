@@ -32,7 +32,7 @@ async function main() {
 
   const loginRes = await fetch(`${GESAPI_BASE}/api/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Origin: 'https://searchdefense.top', Referer: 'https://searchdefense.top/' },
     body: JSON.stringify({ username: GESAPI_USER, password: GESAPI_PASS, code: '' }),
   })
   if (!loginRes.ok) throw new Error(`Login falhou: ${loginRes.status}`)
@@ -40,7 +40,7 @@ async function main() {
   console.log('[SYNC-LOCAL] Login OK. Buscando clientes...')
 
   const usersRes = await fetch(`${GESAPI_BASE}/api/users-iptv?reg_password=${encodeURIComponent(crypt_pass)}`, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access_token}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access_token}`, Origin: 'https://searchdefense.top', Referer: 'https://searchdefense.top/' },
   })
   if (!usersRes.ok) throw new Error(`Erro ao buscar clientes: ${usersRes.status}`)
   const linhas = await usersRes.json()
