@@ -30,7 +30,7 @@
     const valor = params.get('valor')
     const link = params.get('link')
     if (nome) document.getElementById('nomeCliente').textContent = 'Olá, ' + nome + '!'
-    if (valor) document.getElementById('valorRenovacao').textContent = 'R$ ' + parseFloat(valor).toFixed(2).replace('.', ',')
+    if (valor) document.getElementById('valorRenovacao').textContent = 'R$ ' + valor
     if (link) document.getElementById('btnPagar').href = link
     else window.location.href = '/'
   </script>
