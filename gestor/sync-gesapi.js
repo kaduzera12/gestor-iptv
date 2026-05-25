@@ -2,13 +2,19 @@ require('dotenv').config()
 const fetch = require('node-fetch')
 const db = require('./db')
 
-const { GESAPI_USER, GESAPI_PASS } = process.env
-const BASE_URL = 'https://gesapioffice.com'
+const { GESAPI_USER, GESAPI_PASS, GESAPI_PROXY_URL, GESAPI_PROXY_SECRET } = process.env
+const BASE_URL = GESAPI_PROXY_URL || 'https://gesapioffice.com'
+
+function gesapiHeaders(extra = {}) {
+  const h = { 'Content-Type': 'application/json', ...extra }
+  if (GESAPI_PROXY_SECRET) h['X-Proxy-Secret'] = GESAPI_PROXY_SECRET
+  return h
+}
 
 async function loginGesapi() {
   const res = await fetch(`${BASE_URL}/api/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: gesapiHeaders(),
     body: JSON.stringify({ username: GESAPI_USER, password: GESAPI_PASS, code: '' }),
   })
   if (!res.ok) throw new Error(`Login falhou: ${res.status}`)
@@ -45,7 +51,7 @@ async function sincronizarClientesGesapi() {
   const { token, cryptPass } = await loginGesapi()
 
   const res = await fetch(`${BASE_URL}/api/users-iptv?reg_password=${encodeURIComponent(cryptPass)}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: gesapiHeaders({ Authorization: `Bearer ${token}` }),
   })
   if (!res.ok) throw new Error(`Erro ao buscar clientes: ${res.status}`)
   const linhas = await res.json()
