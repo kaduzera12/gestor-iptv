@@ -1,7 +1,7 @@
 require('dotenv').config()
 const fetch = require('node-fetch')
 
-const { GESAPI_USER, GESAPI_PASS, GESTOR_URL, ADMIN_USER, ADMIN_PASS } = process.env
+const { GESAPI_USER, GESAPI_PASS, GESTOR_URL, VPS_URL, ADMIN_USER, ADMIN_PASS } = process.env
 const GESAPI_BASE = 'https://gesapioffice.com'
 
 function extrairNome(nota) {
@@ -47,6 +47,7 @@ async function main() {
   console.log(`[SYNC-LOCAL] ${linhas.length} registros recebidos. Transformando...`)
 
   const gestorUrl = (GESTOR_URL || '').replace(/\/+$/, '')
+  const vpsUrl = (VPS_URL || gestorUrl).replace(/\/+$/, '')
   const clientes = []
 
   for (const linha of linhas) {
@@ -69,7 +70,7 @@ async function main() {
   console.log(`[SYNC-LOCAL] ${clientes.length} clientes válidos. Enviando pro VPS...`)
 
   const basicAuth = Buffer.from(`${ADMIN_USER}:${ADMIN_PASS}`).toString('base64')
-  const importRes = await fetch(`${gestorUrl}/api/import-gesapi`, {
+  const importRes = await fetch(`${vpsUrl}/api/import-gesapi`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Basic ${basicAuth}` },
     body: JSON.stringify({ clientes }),
