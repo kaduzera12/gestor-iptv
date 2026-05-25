@@ -138,7 +138,10 @@
       el.style.display = 'block'
       el.textContent = `✓ Disparo iniciado para ${data.total} cliente${data.total !== 1 ? 's' : ''}. As mensagens serão enviadas em sequência — acompanhe pelos Logs.`
     } else {
-      toast(data.erro || 'Erro ao disparar', 'erro')
+      const el = document.getElementById('resultado')
+      el.className = 'erro'
+      el.style.display = 'block'
+      el.textContent = data.erro || 'Erro ao disparar'
     }
   }
 

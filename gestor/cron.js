@@ -2,6 +2,11 @@ const cron = require('node-cron')
 const db = require('./db')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
 const { sincronizarClientes } = require('./sync')
+const { sincronizarClientesGesapi } = require('./sync-gesapi')
+const { buscarPagamentoAprovado } = require('./pagamento')
+const { renovarClienteGesapi } = require('./renew-gesapi')
+
+let automacaoRodando = false
 
 function getConfig(chave) {
   const row = db.prepare('SELECT valor FROM configuracoes WHERE chave = ?').get(chave)
@@ -49,28 +54,85 @@ async function processarCliente(cliente, tipo, templateKey, ativoKey) {
 }
 
 async function rodarAutomacao() {
-  console.log(`[CRON] Iniciando — ${new Date().toLocaleString('pt-BR')}`)
-
-  console.log('[CRON] Sincronizando clientes com o painel...')
+  if (automacaoRodando) {
+    console.log('[CRON] Já está rodando, ignorando chamada duplicada')
+    return
+  }
+  automacaoRodando = true
   try {
-    const { importados, atualizados } = await sincronizarClientes()
-    console.log(`[CRON] Sync concluído: ${importados} novos, ${atualizados} atualizados`)
-  } catch (err) {
-    console.error(`[CRON] Falha no sync: ${err.message} — disparos continuam com dados atuais`)
+    console.log(`[CRON] Iniciando — ${new Date().toLocaleString('pt-BR')}`)
+
+    console.log('[CRON] Sincronizando clientes com os painéis...')
+    try {
+      const { importados, atualizados } = await sincronizarClientes()
+      console.log(`[CRON] Sync painelr: ${importados} novos, ${atualizados} atualizados`)
+    } catch (err) {
+      console.error(`[CRON] Falha no sync painelr: ${err.message}`)
+    }
+    try {
+      const { importados, atualizados } = await sincronizarClientesGesapi()
+      console.log(`[CRON] Sync gesapi: ${importados} novos, ${atualizados} atualizados`)
+    } catch (err) {
+      console.error(`[CRON] Falha no sync gesapi: ${err.message} — disparos continuam com dados atuais`)
+    }
+
+    const clientes = db.prepare(`SELECT * FROM clientes WHERE status = 'ativo'`).all()
+
+    for (const cliente of clientes) {
+      const dias = diasParaVencer(cliente.exp_date)
+
+      if (dias === 3)   await processarCliente(cliente, '3_dias',            'template_3_dias',          'ativo_3_dias')
+      if (dias === 1)   await processarCliente(cliente, '1_dia',             'template_1_dia',           'ativo_1_dia')
+      if (dias === 0)   await processarCliente(cliente, 'vencimento',        'template_vencimento',      'ativo_vencimento')
+      if (dias === -10) await processarCliente(cliente, '10_dias_vencido',   'template_10_dias_vencido', 'ativo_10_dias_vencido')
+    }
+
+    console.log(`[CRON] Verificação concluída`)
+  } finally {
+    automacaoRodando = false
   }
+}
 
-  const clientes = db.prepare(`SELECT * FROM clientes WHERE status = 'ativo'`).all()
+async function processarPagamentosPendentes() {
+  const pendentes = db.prepare(`
+    SELECT p.*, c.nome, c.telefone, c.username, c.painel_id, c.source
+    FROM pagamentos p
+    JOIN clientes c ON c.id = p.cliente_id
+    WHERE p.status = 'aguardando'
+    AND datetime(p.criado_em) > datetime('now', '-24 hours')
+  `).all()
 
-  for (const cliente of clientes) {
-    const dias = diasParaVencer(cliente.exp_date)
+  for (const pag of pendentes) {
+    try {
+      const aprovado = await buscarPagamentoAprovado(pag.external_reference)
+      if (!aprovado) continue
 
-    if (dias === 3)   await processarCliente(cliente, '3_dias',            'template_3_dias',          'ativo_3_dias')
-    if (dias === 1)   await processarCliente(cliente, '1_dia',             'template_1_dia',           'ativo_1_dia')
-    if (dias === 0)   await processarCliente(cliente, 'vencimento',        'template_vencimento',      'ativo_vencimento')
-    if (dias === -10) await processarCliente(cliente, '10_dias_vencido',   'template_10_dias_vencido', 'ativo_10_dias_vencido')
+      if (pag.source === 'gesapi' && pag.painel_id) {
+        await renovarClienteGesapi(pag.painel_id)
+        db.prepare(`
+          UPDATE clientes SET exp_date = datetime(exp_date, '+30 days'), status = 'ativo'
+          WHERE id = ?
+        `).run(pag.cliente_id)
+      }
+
+      db.prepare(`
+        UPDATE pagamentos SET status = 'aprovado', payment_id = ?, processado_em = datetime('now')
+        WHERE id = ?
+      `).run(String(aprovado.id), pag.id)
+
+      console.log(`[POLLING] Renovação concluída: ${pag.username}`)
+
+      if (pag.telefone) {
+        const valor = pag.valor ? ` de R$ ${pag.valor.toFixed(2).replace('.', ',')}` : ''
+        const msg = `✅ *Renovação confirmada!*\n\nOlá ${pag.nome || pag.username}! Seu pagamento${valor} foi aprovado e sua lista IPTV já foi renovada por mais 30 dias.\n\n_Obrigado!_`
+        enviarMensagem(pag.telefone, msg).catch(err =>
+          console.error(`[POLLING] Erro WhatsApp ${pag.username}:`, err.message)
+        )
+      }
+    } catch (err) {
+      console.error(`[POLLING] Erro ao processar pagamento ${pag.id}:`, err.message)
+    }
   }
-
-  console.log(`[CRON] Verificação concluída`)
 }
 
 function iniciarCron() {
@@ -78,4 +140,9 @@ function iniciarCron() {
   console.log('[CRON] Agendado para 09:00 (horário de Brasília)')
 }
 
-module.exports = { iniciarCron, rodarAutomacao }
+function iniciarPollingPagamentos() {
+  cron.schedule('*/2 * * * *', processarPagamentosPendentes)
+  console.log('[POLLING] Verificação de pagamentos a cada 2 minutos iniciada')
+}
+
+module.exports = { iniciarCron, rodarAutomacao, iniciarPollingPagamentos }

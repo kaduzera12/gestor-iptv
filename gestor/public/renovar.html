@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renovação IPTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 16px; padding: 40px 32px; max-width: 420px; width: 90%; text-align: center; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 12px; color: #7c6aff; }
+    p { font-size: 15px; color: #94a3b8; line-height: 1.6; margin-bottom: 8px; }
+    .valor { font-size: 36px; font-weight: 700; color: #22c55e; margin: 20px 0; }
+    .btn { display: inline-block; margin-top: 24px; padding: 14px 32px; background: #7c6aff; color: #fff; border-radius: 10px; text-decoration: none; font-size: 16px; font-weight: 600; }
+    .aviso { margin-top: 20px; font-size: 12px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Renovar IPTV</h1>
+    <p id="nomeCliente"></p>
+    <div class="valor" id="valorRenovacao"></div>
+    <p>Clique abaixo para pagar com PIX ou cartão pelo Mercado Pago.</p>
+    <a id="btnPagar" href="#" class="btn">Pagar agora</a>
+    <p class="aviso">Após o pagamento, sua lista será renovada automaticamente em até 2 minutos.</p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search)
+    const nome = params.get('nome')
+    const valor = params.get('valor')
+    const link = params.get('link')
+    if (nome) document.getElementById('nomeCliente').textContent = 'Olá, ' + nome + '!'
+    if (valor) document.getElementById('valorRenovacao').textContent = 'R$ ' + parseFloat(valor).toFixed(2).replace('.', ',')
+    if (link) document.getElementById('btnPagar').href = link
+    else window.location.href = '/'
+  </script>
+</body>
+</html>

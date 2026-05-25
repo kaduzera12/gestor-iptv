@@ -137,8 +137,8 @@ async function sincronizarClientes() {
     pagina++
   }
 
-  // Remove do gestor clientes que foram excluídos do painel
-  const todosLocais = db.prepare(`SELECT username FROM clientes`).all()
+  // Remove do gestor clientes do painelr que foram excluídos do painel
+  const todosLocais = db.prepare(`SELECT username FROM clientes WHERE source = 'painelr' OR source IS NULL`).all()
   for (const { username } of todosLocais) {
     if (!usernamesAtivos.has(username)) {
       const cliente = db.prepare(`SELECT id FROM clientes WHERE username = ?`).get(username)

@@ -86,4 +86,21 @@ for (const [chave, valor] of Object.entries(defaults)) {
   db.prepare(`INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES (?, ?)`).run(chave, valor)
 }
 
+// Migrações
+try { db.exec(`ALTER TABLE clientes ADD COLUMN source TEXT DEFAULT 'painelr'`) } catch {}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS pagamentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id INTEGER REFERENCES clientes(id),
+    preference_id TEXT,
+    payment_id TEXT,
+    external_reference TEXT,
+    status TEXT DEFAULT 'aguardando',
+    valor REAL,
+    criado_em TEXT DEFAULT (datetime('now')),
+    processado_em TEXT
+  )
+`)
+
 module.exports = db

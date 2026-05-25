@@ -4,11 +4,61 @@ const basicAuth = require('express-basic-auth')
 const path = require('path')
 const db = require('./db')
 const { sincronizarClientes } = require('./sync')
-const { rodarAutomacao } = require('./cron')
-const { iniciarCron } = require('./cron')
+const { sincronizarClientesGesapi } = require('./sync-gesapi')
+const { rodarAutomacao, iniciarCron, iniciarPollingPagamentos } = require('./cron')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
+const { criarPreference } = require('./pagamento')
+
+let promocaoRodando = false
 
 const app = express()
+
+// ─── Rotas públicas (sem autenticação — acesso do cliente final) ───────────────
+
+app.get('/renovar/sucesso', (req, res) => {
+  const paymentId = req.query.payment_id || req.query.collection_id
+  if (paymentId) {
+    const pendente = db.prepare(`
+      SELECT id FROM pagamentos WHERE payment_id IS NULL AND status = 'aguardando'
+      ORDER BY criado_em DESC LIMIT 1
+    `).get()
+    if (pendente) {
+      db.prepare(`UPDATE pagamentos SET payment_id = ? WHERE id = ?`).run(String(paymentId), pendente.id)
+    }
+  }
+  res.sendFile(path.join(__dirname, 'public', 'renovar-sucesso.html'))
+})
+
+app.get('/renovar/falha', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'renovar-falha.html'))
+})
+
+app.get('/renovar/pendente', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'renovar-sucesso.html'))
+})
+
+app.get('/renovar/:username', async (req, res) => {
+  const cliente = db.prepare(`SELECT * FROM clientes WHERE username = ? AND source = 'gesapi'`).get(req.params.username)
+  if (!cliente) return res.status(404).send('Cliente não encontrado')
+  if (!cliente.nome || !cliente.telefone) return res.status(400).send('Cliente sem dados para renovação')
+
+  try {
+    const preference = await criarPreference(cliente)
+    db.prepare(`
+      INSERT INTO pagamentos (cliente_id, preference_id, external_reference, valor, status)
+      VALUES (?, ?, ?, ?, 'aguardando')
+    `).run(cliente.id, preference.id, String(cliente.id), parseFloat(process.env.MP_PRECO || '25'))
+
+    const valor = parseFloat(process.env.MP_PRECO || '25').toFixed(2).replace('.', ',')
+    const params = new URLSearchParams({ nome: cliente.nome, valor, link: preference.init_point })
+    res.redirect(`/renovar.html?${params}`)
+  } catch (err) {
+    console.error('[RENOVAR]', err.message)
+    res.status(500).send('Erro ao gerar link de pagamento. Tente novamente.')
+  }
+})
+
+// ─── Auth e estáticos (admin) ──────────────────────────────────────────────────
 
 app.use(basicAuth({
   users: { [process.env.ADMIN_USER]: process.env.ADMIN_PASS },
@@ -94,6 +144,15 @@ app.post('/api/sync', async (req, res) => {
   }
 })
 
+app.post('/api/sync-gesapi', async (req, res) => {
+  try {
+    const resultado = await sincronizarClientesGesapi()
+    res.json({ ok: true, ...resultado })
+  } catch (err) {
+    res.status(500).json({ erro: err.message })
+  }
+})
+
 // ─── Envio manual de mensagem ──────────────────────────────────────────────────
 
 app.post('/api/clientes/:id/mensagem', async (req, res) => {
@@ -164,6 +223,7 @@ app.get('/api/logs', (req, res) => {
 app.post('/api/promocao', async (req, res) => {
   const { mensagem, filtro } = req.body
   if (!mensagem || !filtro) return res.status(400).json({ erro: 'mensagem e filtro são obrigatórios' })
+  if (promocaoRodando) return res.status(429).json({ erro: 'Já existe um disparo em andamento. Aguarde concluir.' })
 
   const hoje = new Date().toISOString().slice(0, 10)
   let sql = `SELECT * FROM clientes WHERE nome IS NOT NULL AND telefone IS NOT NULL`
@@ -174,20 +234,24 @@ app.post('/api/promocao', async (req, res) => {
 
   res.json({ ok: true, total: clientes.length })
 
-  // Dispara em background sem bloquear a resposta
+  promocaoRodando = true
   ;(async () => {
-    for (const c of clientes) {
-      const texto = mensagem
-        .replace(/{nome}/g, c.nome || '')
-        .replace(/{username}/g, c.username || '')
-        .replace(/{renew_link}/g, c.renew_link || '')
-      try {
-        await enviarMensagem(c.telefone, texto)
-        db.prepare(`INSERT INTO logs (cliente_id, tipo, status) VALUES (?, 'promocao', 'enviado')`).run(c.id)
-      } catch {
-        db.prepare(`INSERT INTO logs (cliente_id, tipo, status) VALUES (?, 'promocao', 'erro')`).run(c.id)
+    try {
+      for (const c of clientes) {
+        const texto = mensagem
+          .replace(/{nome}/g, c.nome || '')
+          .replace(/{username}/g, c.username || '')
+          .replace(/{renew_link}/g, c.renew_link || '')
+        try {
+          await enviarMensagem(c.telefone, texto)
+          db.prepare(`INSERT INTO logs (cliente_id, tipo, status) VALUES (?, 'promocao', 'enviado')`).run(c.id)
+        } catch {
+          db.prepare(`INSERT INTO logs (cliente_id, tipo, status) VALUES (?, 'promocao', 'erro')`).run(c.id)
+        }
+        await new Promise(r => setTimeout(r, 1500))
       }
-      await new Promise(r => setTimeout(r, 1500))
+    } finally {
+      promocaoRodando = false
     }
   })()
 })
@@ -209,4 +273,5 @@ const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Gestor IPTV rodando em http://localhost:${PORT}`)
   iniciarCron()
+  iniciarPollingPagamentos()
 })
