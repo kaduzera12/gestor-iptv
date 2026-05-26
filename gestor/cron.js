@@ -119,7 +119,7 @@ async function processarPagamentosPendentes() {
 
       const adminWpp = process.env.ADMIN_WHATSAPP
       if (adminWpp) {
-        const msgAdmin = `💰 *Pagamento recebido!*\n\nCliente: *${pag.nome || pag.username}*\nValor:${valor}\n\nRenove no painel e dispare a confirmação pelo gestor.`
+        const msgAdmin = `💰 *Pagamento recebido!*\n\nCliente: *${pag.nome || pag.username}*\nLista: *${pag.username}*\nValor:${valor}\n\nRenove no painel e dispare a confirmação pelo gestor.`
         enviarMensagem(adminWpp, msgAdmin).catch(() => {})
       }
     } catch (err) {
