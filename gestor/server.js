@@ -79,9 +79,12 @@ app.get('/api/clientes', (req, res) => {
     sql += ' AND (nome LIKE ? OR username LIKE ? OR telefone LIKE ?)'
     params.push(`%${busca}%`, `%${busca}%`, `%${busca}%`)
   }
-  if (status) {
-    sql += ' AND status = ?'
-    params.push(status)
+  if (status === 'ativos') {
+    sql += ` AND date(exp_date) >= date('now')`
+  } else if (status === 'vencidos') {
+    sql += ` AND date(exp_date) < date('now')`
+  } else if (status === 'inativo') {
+    sql += ` AND status = 'inativo'`
   }
 
   sql += ' ORDER BY exp_date ASC'
