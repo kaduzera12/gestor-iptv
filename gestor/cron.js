@@ -117,16 +117,9 @@ async function processarPagamentosPendentes() {
 
       const valor = pag.valor ? ` de R$ ${pag.valor.toFixed(2).replace('.', ',')}` : ''
 
-      if (pag.telefone) {
-        const msg = `✅ *Renovação confirmada!*\n\nOlá ${pag.nome || pag.username}! Seu pagamento${valor} foi aprovado e sua lista IPTV já foi renovada por mais 30 dias.\n\n_Obrigado!_`
-        enviarMensagem(pag.telefone, msg).catch(err =>
-          console.error(`[POLLING] Erro WhatsApp ${pag.username}:`, err.message)
-        )
-      }
-
       const adminWpp = process.env.ADMIN_WHATSAPP
       if (adminWpp) {
-        const msgAdmin = `💰 *Pagamento recebido!*\n\nCliente: *${pag.nome || pag.username}*\nValor:${valor}\nRenovação automática processada. Verifique se renovou no painel.`
+        const msgAdmin = `💰 *Pagamento recebido!*\n\nCliente: *${pag.nome || pag.username}*\nValor:${valor}\n\nRenove no painel e dispare a confirmação pelo gestor.`
         enviarMensagem(adminWpp, msgAdmin).catch(() => {})
       }
     } catch (err) {
