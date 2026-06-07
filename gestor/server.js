@@ -57,6 +57,12 @@ app.get('/renovar/:username', async (req, res) => {
   }
 })
 
+// ─── Estáticos públicos (sem autenticação) ─────────────────────────────────────
+
+app.get('/renovar.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'renovar.html')))
+app.get('/renovar-sucesso.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'renovar-sucesso.html')))
+app.get('/renovar-falha.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'renovar-falha.html')))
+
 // ─── Auth e estáticos (admin) ──────────────────────────────────────────────────
 
 app.use(basicAuth({
