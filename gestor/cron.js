@@ -3,7 +3,6 @@ const db = require('./db')
 const { enviarMensagem, aplicarTemplate } = require('./whatsapp')
 const { sincronizarClientes } = require('./sync')
 const { buscarPagamentoAprovado } = require('./pagamento')
-const { renovarClienteGesapi } = require('./renew-gesapi')
 
 let automacaoRodando = false
 
@@ -99,14 +98,6 @@ async function processarPagamentosPendentes() {
     try {
       const aprovado = await buscarPagamentoAprovado(pag.external_reference)
       if (!aprovado) continue
-
-      if (pag.source === 'gesapi' && pag.painel_id) {
-        await renovarClienteGesapi(pag.painel_id)
-        db.prepare(`
-          UPDATE clientes SET exp_date = datetime(exp_date, '+30 days'), status = 'ativo'
-          WHERE id = ?
-        `).run(pag.cliente_id)
-      }
 
       db.prepare(`
         UPDATE pagamentos SET status = 'aprovado', payment_id = ?, processado_em = datetime('now')
