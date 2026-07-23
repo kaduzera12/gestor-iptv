@@ -13,7 +13,7 @@ async function enviarMensagem(telefone, texto) {
     headers: { 'Content-Type': 'application/json', apikey: EVOLUTION_KEY },
     body: JSON.stringify({
       number: numero,
-      textMessage: { text: texto },
+      text: texto,
       delay: 1200,
       linkPreview: false,
     }),
