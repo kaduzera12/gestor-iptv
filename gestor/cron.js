@@ -99,6 +99,11 @@ async function processarPagamentosPendentes() {
       const aprovado = await buscarPagamentoAprovado(pag.external_reference)
       if (!aprovado) continue
 
+      const jaProcessado = db.prepare(`
+        SELECT id FROM pagamentos WHERE payment_id = ? AND status = 'aprovado'
+      `).get(String(aprovado.id))
+      if (jaProcessado) continue
+
       db.prepare(`
         UPDATE pagamentos SET status = 'aprovado', payment_id = ?, processado_em = datetime('now')
         WHERE id = ?
